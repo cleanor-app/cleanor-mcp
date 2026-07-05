@@ -1,5 +1,7 @@
 # Cleanor MCP
 
+[![smithery badge](https://smithery.ai/badge/hello-ha8x/cleanor)](https://smithery.ai/servers/hello-ha8x/cleanor)
+
 **Zero-auth, hosted [Model Context Protocol](https://modelcontextprotocol.io) server for AI builders.**
 
 Two things no popular MCP does well, in one server:
