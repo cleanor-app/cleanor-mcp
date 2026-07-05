@@ -4,7 +4,11 @@
   "title": "Cleanor",
   "description": "Zero-auth image optimize/convert + cited storage, image-format & QR data for AI builders.",
   "websiteUrl": "https://mcp.cleanor.app",
-  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/cleanor-app/cleanor-mcp",
+    "source": "github"
+  },
+  "version": "0.1.1",
   "remotes": [
     {
       "type": "streamable-http",
