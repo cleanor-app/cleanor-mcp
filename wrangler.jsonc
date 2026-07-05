@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cleanor-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "routes": [{ "pattern": "mcp.cleanor.app", "custom_domain": true }],
+  "ratelimits": [
+    { "name": "RL_GENERAL", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_IMAGE", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "CleanorMCP", "class_name": "CleanorMCP" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CleanorMCP"] }]
+}
