@@ -1,6 +1,6 @@
 # Cleanor MCP
 
-[![smithery badge](https://smithery.ai/badge/hello-ha8x/cleanor)](https://smithery.ai/servers/hello-ha8x/cleanor)
+[![smithery badge](https://smithery.ai/badge/hello-ha8x/cleanor)](https://smithery.ai/servers/hello-ha8x/cleanor) [![npm](https://img.shields.io/npm/v/@cleanor/mcp?logo=npm&color=cb3837)](https://www.npmjs.com/package/@cleanor/mcp)
 
 **Zero-auth, hosted [Model Context Protocol](https://modelcontextprotocol.io) server for AI builders.**
 
@@ -46,18 +46,20 @@ claude mcp add --transport http cleanor https://mcp.cleanor.app/mcp
 }
 ```
 
-**Older clients** that only speak stdio can bridge to the remote server with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+**Stdio-only clients** can run the server locally via `npx` — no bridge needed. Published on npm as [`@cleanor/mcp`](https://www.npmjs.com/package/@cleanor/mcp):
 
 ```json
 {
   "mcpServers": {
     "cleanor": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.cleanor.app/mcp"]
+      "args": ["-y", "@cleanor/mcp"]
     }
   }
 }
 ```
+
+Local image optimization uses [`sharp`](https://sharp.pixelplumbing.com/) (an optional dependency); the data and QR tools work regardless.
 
 ## About
 
