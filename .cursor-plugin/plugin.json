@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cursor/plugins/main/schemas/plugin.schema.json",
+  "name": "cleanor",
+  "displayName": "Cleanor",
+  "description": "Optimize and convert images (WebP/AVIF), pull cited storage & image-format data, and generate QR codes. Zero-auth.",
+  "version": "0.2.0",
+  "author": { "name": "Cleanor Labs", "email": "hello@cleanor.app" },
+  "homepage": "https://cleanor.app/mcp",
+  "repository": "https://github.com/cleanor-app/cleanor-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "image-optimization", "webp", "avif", "qr-code", "ai"],
+  "category": "Images",
+  "mcpServers": {
+    "cleanor": { "url": "https://mcp.cleanor.app/mcp" }
+  }
+}
