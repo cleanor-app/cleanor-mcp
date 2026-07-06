@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "Cleanor MCP: a zero-auth hosted MCP server for image optimization and cited storage/format data"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - name: "Cleanor Labs"
+    orcid: "https://orcid.org/0009-0005-4623-961X"
+    website: "https://cleanor.app"
+repository-code: "https://github.com/cleanor-app/cleanor-mcp"
+url: "https://mcp.cleanor.app"
+doi: 10.5281/zenodo.21225551
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21225551
+    description: "Concept DOI (always resolves to the latest release)"
+license: MIT
+version: 0.1.2
