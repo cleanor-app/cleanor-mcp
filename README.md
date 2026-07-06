@@ -1,6 +1,6 @@
 # Cleanor MCP
 
-[![smithery badge](https://smithery.ai/badge/hello-ha8x/cleanor)](https://smithery.ai/servers/hello-ha8x/cleanor) [![npm](https://img.shields.io/npm/v/@cleanor/mcp?logo=npm&color=cb3837)](https://www.npmjs.com/package/@cleanor/mcp)
+[![smithery badge](https://smithery.ai/badge/hello-ha8x/cleanor)](https://smithery.ai/servers/hello-ha8x/cleanor) [![npm](https://img.shields.io/npm/v/@cleanor/mcp?logo=npm&color=cb3837)](https://www.npmjs.com/package/@cleanor/mcp) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21225551.svg)](https://doi.org/10.5281/zenodo.21225551)
 
 **Zero-auth, hosted [Model Context Protocol](https://modelcontextprotocol.io) server for AI builders.**
 
@@ -71,3 +71,7 @@ Built and hosted by **[Cleanor Labs](https://cleanor.app)** — free, private, i
 ## License
 
 MIT © Cleanor Labs
+
+## Citation
+
+If you use Cleanor MCP or its data, please cite it. Authored by Cleanor Labs, [ORCID 0009-0005-4623-961X](https://orcid.org/0009-0005-4623-961X). The archived, citable version has DOI [10.5281/zenodo.21225551](https://doi.org/10.5281/zenodo.21225551) (concept DOI, always resolves to the latest release).
