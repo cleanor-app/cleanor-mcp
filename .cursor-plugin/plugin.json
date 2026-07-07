@@ -2,15 +2,33 @@
   "$schema": "https://raw.githubusercontent.com/cursor/plugins/main/schemas/plugin.schema.json",
   "name": "cleanor",
   "displayName": "Cleanor",
-  "description": "Optimize and convert images (WebP/AVIF), pull cited storage & image-format data, and generate QR codes. Zero-auth.",
-  "version": "0.2.0",
-  "author": { "name": "Cleanor Labs", "email": "hello@cleanor.app" },
+  "description": "Zero-auth MCP: 22 tools — optimize/convert images (WebP/AVIF/JPEG), QR codes, cited storage & image-format data, plus 18 deterministic dev utilities (hash, HMAC, UUID, base64, JWT, JSON, regex, cron, unit/base convert, datetime, URL parse, diff, color, palette, slugify, count, SVG placeholder) LLMs get wrong.",
+  "version": "0.5.0",
+  "author": {
+    "name": "Cleanor Labs",
+    "email": "hello@cleanor.app"
+  },
   "homepage": "https://cleanor.app/mcp",
   "repository": "https://github.com/cleanor-app/cleanor-mcp",
   "license": "MIT",
-  "keywords": ["mcp", "image-optimization", "webp", "avif", "qr-code", "ai"],
-  "category": "Images",
+  "keywords": [
+    "mcp",
+    "image-optimization",
+    "webp",
+    "avif",
+    "qr-code",
+    "ai",
+    "developer-tools",
+    "hash",
+    "uuid",
+    "jwt",
+    "json",
+    "utilities"
+  ],
+  "category": "Developer Tools",
   "mcpServers": {
-    "cleanor": { "url": "https://mcp.cleanor.app/mcp" }
+    "cleanor": {
+      "url": "https://mcp.cleanor.app/mcp"
+    }
   }
 }
