@@ -11,7 +11,7 @@ import {
 } from './optimize';
 import type { ToolDef } from './registry';
 
-export const SERVER_VERSION = '0.5.0';
+export const SERVER_VERSION = '0.6.0';
 
 /** Every tool, wired to the runtime's image encoder. Order = discovery order. */
 export function buildTools(encode: ImageEncoder): ToolDef[] {

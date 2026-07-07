@@ -19,6 +19,13 @@ const FOOTER = '\n\n— free browser dev tools (no signup): https://cleanor.app/
 
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
+// A result carrying BOTH a human-readable text block and machine-readable
+// structuredContent (required by the SDK whenever a tool declares outputSchema).
+const out = (t: string, structuredContent: Record<string, unknown>) => ({
+  content: [{ type: 'text' as const, text: t }],
+  structuredContent,
+});
+
 // --- hash -------------------------------------------------------------------
 
 const HASH_ALGOS = {
@@ -42,13 +49,17 @@ const hash = defineTool(
         .default('sha-256')
         .describe('Hash algorithm. Default sha-256.'),
     },
+    outputSchema: {
+      algorithm: z.string().describe('The hash algorithm used.'),
+      hex: z.string().describe('The hex-encoded digest.'),
+    },
   },
   async ({ input, algorithm }) => {
     const buf = await crypto.subtle.digest(HASH_ALGOS[algorithm], new TextEncoder().encode(input));
     const hex = Array.from(new Uint8Array(buf))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
-    return text(`${algorithm}: ${hex}${FOOTER}`);
+    return out(`${algorithm}: ${hex}${FOOTER}`, { algorithm, hex });
   },
 );
 
@@ -81,12 +92,16 @@ const uuid = defineTool(
       version: z.enum(['v4', 'v7']).default('v4').describe('UUID version. v7 = time-ordered.'),
       count: z.number().int().min(1).max(100).default(1).describe('How many to generate.'),
     },
+    outputSchema: {
+      version: z.string().describe('UUID version generated.'),
+      uuids: z.array(z.string()).describe('The generated UUIDs.'),
+    },
   },
   async ({ version, count }) => {
     const list = Array.from({ length: count }, () =>
       version === 'v7' ? uuidV7() : crypto.randomUUID(),
     );
-    return text(list.join('\n') + FOOTER);
+    return out(list.join('\n') + FOOTER, { version, uuids: list });
   },
 );
 
@@ -107,20 +122,25 @@ const base64 = defineTool(
         .default(false)
         .describe('Use URL-safe alphabet (-_ instead of +/, no padding).'),
     },
+    outputSchema: {
+      mode: z.string().describe('encode or decode.'),
+      result: z.string().describe('The encoded or decoded text.'),
+    },
   },
   async ({ input, mode, url_safe }) => {
     try {
       if (mode === 'encode') {
-        let out = toBase64(new TextEncoder().encode(input));
-        if (url_safe) out = out.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        return text(out + FOOTER);
+        let encoded = toBase64(new TextEncoder().encode(input));
+        if (url_safe) encoded = encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return out(encoded + FOOTER, { mode, result: encoded });
       }
       let b64 = input.trim();
       if (url_safe || /[-_]/.test(b64)) b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
       while (b64.length % 4) b64 += '=';
       const bin = atob(b64);
       const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-      return text(new TextDecoder().decode(bytes) + FOOTER);
+      const decoded = new TextDecoder().decode(bytes);
+      return out(decoded + FOOTER, { mode, result: decoded });
     } catch {
       return errText('Invalid Base64 input.');
     }
@@ -156,6 +176,10 @@ const jsonFormat = defineTool(
         .describe('pretty = 2-space indent; minify = single line.'),
       sort_keys: z.boolean().default(false).describe('Sort object keys alphabetically (deep).'),
     },
+    outputSchema: {
+      valid: z.boolean().describe('Whether the input was valid JSON.'),
+      formatted: z.string().describe('The formatted JSON text.'),
+    },
   },
   async ({ input, mode, sort_keys }) => {
     let parsed: unknown;
@@ -165,8 +189,8 @@ const jsonFormat = defineTool(
       return errText(`Invalid JSON: ${(e as Error).message}`);
     }
     if (sort_keys) parsed = sortKeys(parsed);
-    const out = mode === 'pretty' ? JSON.stringify(parsed, null, 2) : JSON.stringify(parsed);
-    return text('```json\n' + out + '\n```' + FOOTER);
+    const formatted = mode === 'pretty' ? JSON.stringify(parsed, null, 2) : JSON.stringify(parsed);
+    return out('```json\n' + formatted + '\n```' + FOOTER, { valid: true, formatted });
   },
 );
 
@@ -190,6 +214,12 @@ const jwtDecode = defineTool(
     inputSchema: {
       token: z.string().min(1).max(MAX_TEXT).describe('The JWT (three dot-separated segments).'),
     },
+    outputSchema: {
+      header: z.unknown().describe('The decoded JWT header object.'),
+      payload: z.unknown().describe('The decoded JWT payload (claims).'),
+      exp_iso: z.string().optional().describe('Expiry as ISO 8601, if present.'),
+      expired: z.boolean().optional().describe('Whether the token is past its exp, if present.'),
+    },
   },
   async ({ token }) => {
     const parts = token.trim().split('.');
@@ -197,16 +227,21 @@ const jwtDecode = defineTool(
     try {
       const header = b64urlToJson(parts[0]);
       const payload = b64urlToJson(parts[1]) as Record<string, unknown>;
+      const structured: Record<string, unknown> = { header, payload };
       let expNote = '';
       if (typeof payload.exp === 'number') {
+        const iso = new Date(payload.exp * 1000).toISOString();
         const expired = payload.exp * 1000 < Date.now();
-        expNote = `\n\nexp: ${new Date(payload.exp * 1000).toISOString()} (${expired ? 'EXPIRED' : 'valid'})`;
+        structured.exp_iso = iso;
+        structured.expired = expired;
+        expNote = `\n\nexp: ${iso} (${expired ? 'EXPIRED' : 'valid'})`;
       }
-      return text(
+      return out(
         `Header:\n${JSON.stringify(header, null, 2)}\n\nPayload:\n${JSON.stringify(payload, null, 2)}` +
           expNote +
           `\n\nNote: signature is NOT verified.` +
           FOOTER,
+        structured,
       );
     } catch {
       return errText('Could not decode JWT segments as Base64URL JSON.');
@@ -322,16 +357,24 @@ const color = defineTool(
         .max(64)
         .describe('A color: "#3b82f6", "rgb(59,130,246)" or "hsl(217,91%,60%)".'),
     },
+    outputSchema: {
+      hex: z.string(),
+      rgb: z.string(),
+      hsl: z.string(),
+    },
   },
   async ({ value }) => {
     const rgb = parseColor(value);
     if (!rgb) return errText('Could not parse color. Use hex, rgb(...) or hsl(...).');
     const hex = '#' + [rgb.r, rgb.g, rgb.b].map((c) => c.toString(16).padStart(2, '0')).join('');
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return text(
-      `hex: ${hex}\nrgb: rgb(${rgb.r}, ${rgb.g}, ${rgb.b})\nhsl: hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)` +
-        FOOTER,
-    );
+    const rgbStr = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    const hslStr = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+    return out(`hex: ${hex}\nrgb: ${rgbStr}\nhsl: ${hslStr}` + FOOTER, {
+      hex,
+      rgb: rgbStr,
+      hsl: hslStr,
+    });
   },
 );
 
@@ -348,15 +391,19 @@ const slugify = defineTool(
       input: z.string().min(1).max(2000).describe('Text to slugify.'),
       separator: z.enum(['-', '_']).default('-').describe('Word separator.'),
     },
+    outputSchema: {
+      slug: z.string().describe('The URL-safe slug.'),
+    },
   },
   async ({ input, separator }) => {
-    const slug = input
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, separator)
-      .replace(new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'), '');
-    return text((slug || 'n-a') + FOOTER);
+    const slug =
+      input
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, separator)
+        .replace(new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'), '') || 'n-a';
+    return out(slug + FOOTER, { slug });
   },
 );
 
@@ -372,6 +419,13 @@ const count = defineTool(
     inputSchema: {
       input: z.string().min(0).max(MAX_TEXT).describe('Text to measure.'),
     },
+    outputSchema: {
+      characters: z.number().describe('Unicode code points.'),
+      utf16_units: z.number(),
+      words: z.number(),
+      lines: z.number(),
+      bytes: z.number().describe('UTF-8 bytes.'),
+    },
   },
   async ({ input }) => {
     const chars = Array.from(input).length;
@@ -379,9 +433,10 @@ const count = defineTool(
     const words = input.trim() ? input.trim().split(/\s+/).length : 0;
     const lines = input === '' ? 0 : input.split(/\r\n|\r|\n/).length;
     const bytes = new TextEncoder().encode(input).length;
-    return text(
+    return out(
       `characters (code points): ${chars}\nUTF-16 units: ${utf16}\nwords: ${words}\nlines: ${lines}\nUTF-8 bytes: ${bytes}` +
         FOOTER,
+      { characters: chars, utf16_units: utf16, words, lines, bytes },
     );
   },
 );
@@ -404,6 +459,20 @@ const regexTest = defineTool(
         .default('g')
         .describe('Regex flags, e.g. "gi". Allowed: g i m s u y d.'),
     },
+    outputSchema: {
+      matched: z.boolean().describe('Whether the pattern matched at all.'),
+      match_count: z.number(),
+      truncated: z.boolean().describe('True if results were capped at 100.'),
+      matches: z
+        .array(
+          z.object({
+            index: z.number(),
+            match: z.string(),
+            groups: z.array(z.string().nullable()),
+          }),
+        )
+        .describe('Each match with its start index and captured groups.'),
+    },
   },
   async ({ pattern, input, flags }) => {
     if (!/^[gimsuyd]*$/.test(flags)) return errText('Invalid flags. Allowed: g i m s u y d.');
@@ -414,40 +483,40 @@ const regexTest = defineTool(
       return errText(`Invalid regex: ${(e as Error).message}`);
     }
     const global = flags.includes('g');
-    const matches: string[] = [];
-    let n = 0;
+    const results: Array<{ index: number; match: string; groups: (string | null)[] }> = [];
+    let truncated = false;
+    const collect = (m: RegExpMatchArray) => {
+      results.push({
+        index: m.index ?? 0,
+        match: m[0],
+        groups: m.slice(1).map((g) => (g === undefined ? null : g)),
+      });
+    };
     if (global) {
       for (const m of input.matchAll(re)) {
-        if (++n > 100) {
-          matches.push('… (capped at 100 matches)');
+        if (results.length >= 100) {
+          truncated = true;
           break;
         }
-        const groups =
-          m.length > 1
-            ? ` groups: [${m
-                .slice(1)
-                .map((g) => JSON.stringify(g))
-                .join(', ')}]`
-            : '';
-        matches.push(`@${m.index}: ${JSON.stringify(m[0])}${groups}`);
+        collect(m);
       }
     } else {
       const m = re.exec(input);
-      if (m) {
-        const groups =
-          m.length > 1
-            ? ` groups: [${m
-                .slice(1)
-                .map((g) => JSON.stringify(g))
-                .join(', ')}]`
-            : '';
-        matches.push(`@${m.index}: ${JSON.stringify(m[0])}${groups}`);
-      }
+      if (m) collect(m);
     }
-    const head = matches.length
-      ? `${matches.length === 1 ? '1 match' : matches.length + ' matches'}:`
+    const head = results.length
+      ? `${results.length === 1 ? '1 match' : results.length + ' matches'}${truncated ? ' (capped at 100)' : ''}:`
       : 'No match.';
-    return text([head, ...matches].join('\n') + FOOTER);
+    const lines = results.map(
+      (r) =>
+        `@${r.index}: ${JSON.stringify(r.match)}${r.groups.length ? ` groups: [${r.groups.map((g) => JSON.stringify(g)).join(', ')}]` : ''}`,
+    );
+    return out([head, ...lines].join('\n') + FOOTER, {
+      matched: results.length > 0,
+      match_count: results.length,
+      truncated,
+      matches: results,
+    });
   },
 );
 
@@ -518,6 +587,14 @@ const cronDescribe = defineTool(
         .max(200)
         .describe('A 5-field cron expression, e.g. "30 2 * * 1-5".'),
     },
+    outputSchema: {
+      minute: z.string(),
+      hour: z.string(),
+      day_of_month: z.string(),
+      month: z.string(),
+      day_of_week: z.string(),
+      next_runs: z.array(z.string()).describe('Next run times in UTC ISO 8601.'),
+    },
   },
   async ({ expression }) => {
     const f = expression.trim().split(/\s+/);
@@ -557,18 +634,28 @@ const cronDescribe = defineTool(
       }
       t = new Date(t.getTime() + 60_000);
     }
+    const fields = {
+      minute: describeField(f[0], minutes, 60),
+      hour: describeField(f[1], hours, 24),
+      day_of_month: describeField(f[2], doms, 31),
+      month: describeField(f[3], months, 12, (n) => MON_NAMES[n]),
+      day_of_week: describeField(f[4].replace(/7/g, '0'), dows, 7, (n) => DOW_NAMES[n]),
+    };
     const lines = [
-      `Minute: ${describeField(f[0], minutes, 60)}`,
-      `Hour: ${describeField(f[1], hours, 24)}`,
-      `Day of month: ${describeField(f[2], doms, 31)}`,
-      `Month: ${describeField(f[3], months, 12, (n) => MON_NAMES[n])}`,
-      `Day of week: ${describeField(f[4].replace(/7/g, '0'), dows, 7, (n) => DOW_NAMES[n])}`,
+      `Minute: ${fields.minute}`,
+      `Hour: ${fields.hour}`,
+      `Day of month: ${fields.day_of_month}`,
+      `Month: ${fields.month}`,
+      `Day of week: ${fields.day_of_week}`,
       '',
       fireTimes.length
         ? `Next ${fireTimes.length} runs (UTC):\n  ${fireTimes.join('\n  ')}`
         : 'No run within the next year.',
     ];
-    return text(`Cron: ${expression.trim()}\n` + lines.join('\n') + FOOTER);
+    return out(`Cron: ${expression.trim()}\n` + lines.join('\n') + FOOTER, {
+      ...fields,
+      next_runs: fireTimes,
+    });
   },
 );
 
@@ -628,6 +715,13 @@ const unitConvert = defineTool(
       from: z.string().min(1).max(8).describe('Source unit (e.g. "km", "lb", "mib", "c").'),
       to: z.string().min(1).max(8).describe('Target unit (must be the same category as "from").'),
     },
+    outputSchema: {
+      value: z.number(),
+      from: z.string(),
+      to: z.string(),
+      result: z.number(),
+      category: z.string(),
+    },
   },
   async ({ value, from, to }) => {
     const a = from.toLowerCase();
@@ -638,7 +732,13 @@ const unitConvert = defineTool(
     if (cat === 'temperature') result = convertTemp(value, a, b);
     else result = (value * UNITS[cat][a]) / UNITS[cat][b];
     const rounded = Math.abs(result) >= 1e-4 ? Number(result.toPrecision(10)) : result;
-    return text(`${value} ${from} = ${rounded} ${to}  (${cat})` + FOOTER);
+    return out(`${value} ${from} = ${rounded} ${to}  (${cat})` + FOOTER, {
+      value,
+      from,
+      to,
+      result: rounded,
+      category: cat,
+    });
   },
 );
 
@@ -664,6 +764,13 @@ const datetime = defineTool(
         .max(64)
         .default('UTC')
         .describe('IANA timezone, e.g. "America/New_York" or "UTC".'),
+    },
+    outputSchema: {
+      timezone: z.string(),
+      local: z.string().describe('Human-readable local time in the timezone.'),
+      iso_utc: z.string(),
+      unix_s: z.number(),
+      unix_ms: z.number(),
     },
   },
   async ({ input, timezone }) => {
@@ -691,12 +798,19 @@ const datetime = defineTool(
     } catch {
       return errText(`Unknown timezone "${timezone}". Use an IANA name like "Europe/London".`);
     }
-    return text(
+    return out(
       `local (${timezone}): ${human}\n` +
         `ISO (UTC): ${date.toISOString()}\n` +
         `Unix (s): ${Math.floor(date.getTime() / 1000)}\n` +
         `Unix (ms): ${date.getTime()}` +
         FOOTER,
+      {
+        timezone,
+        local: human,
+        iso_utc: date.toISOString(),
+        unix_s: Math.floor(date.getTime() / 1000),
+        unix_ms: date.getTime(),
+      },
     );
   },
 );
@@ -713,6 +827,15 @@ const urlParse = defineTool(
     inputSchema: {
       url: z.string().min(1).max(4000).describe('The URL to parse (absolute, with scheme).'),
     },
+    outputSchema: {
+      scheme: z.string(),
+      username: z.string().optional(),
+      host: z.string(),
+      port: z.string().describe('Port, or empty if the scheme default.'),
+      path: z.string(),
+      query: z.array(z.object({ key: z.string(), value: z.string() })),
+      fragment: z.string(),
+    },
   },
   async ({ url }) => {
     let u: URL;
@@ -725,7 +848,16 @@ const urlParse = defineTool(
     const paramLines = params.length
       ? params.map(([k, v]) => `  ${k} = ${v}`).join('\n')
       : '  (none)';
-    return text(
+    const structured: Record<string, unknown> = {
+      scheme: u.protocol.replace(':', ''),
+      host: u.hostname,
+      port: u.port,
+      path: u.pathname,
+      query: params.map(([key, value]) => ({ key, value })),
+      fragment: u.hash ? u.hash.slice(1) : '',
+    };
+    if (u.username) structured.username = u.username;
+    return out(
       `scheme: ${u.protocol.replace(':', '')}\n` +
         (u.username ? `user: ${u.username}${u.password ? ':***' : ''}\n` : '') +
         `host: ${u.hostname}\n` +
@@ -734,6 +866,7 @@ const urlParse = defineTool(
         `query params:\n${paramLines}\n` +
         `fragment: ${u.hash ? u.hash.slice(1) : '(none)'}` +
         FOOTER,
+      structured,
     );
   },
 );
@@ -789,6 +922,13 @@ const baseConvert = defineTool(
       from_base: z.number().int().min(2).max(36).default(10).describe('Base of the input (2–36).'),
       to_base: z.number().int().min(2).max(36).default(16).describe('Base to convert to (2–36).'),
     },
+    outputSchema: {
+      input: z.string(),
+      from_base: z.number(),
+      to_base: z.number(),
+      result: z.string().describe('The value in to_base.'),
+      decimal: z.string().describe('The value in base 10.'),
+    },
   },
   async ({ value, from_base, to_base }) => {
     let n: bigint;
@@ -797,10 +937,12 @@ const baseConvert = defineTool(
     } catch (e) {
       return errText((e as Error).message);
     }
-    return text(
-      `${value} (base ${from_base}) = ${toBaseStr(n, to_base)} (base ${to_base})\n` +
+    const result = toBaseStr(n, to_base);
+    return out(
+      `${value} (base ${from_base}) = ${result} (base ${to_base})\n` +
         `decimal: ${n.toString(10)}` +
         FOOTER,
+      { input: value, from_base, to_base, result, decimal: n.toString(10) },
     );
   },
 );
@@ -860,6 +1002,12 @@ const diff = defineTool(
       a: z.string().min(0).max(MAX_TEXT).describe('The original ("before") text.'),
       b: z.string().min(0).max(MAX_TEXT).describe('The updated ("after") text.'),
     },
+    outputSchema: {
+      changed: z.boolean(),
+      added: z.number(),
+      removed: z.number(),
+      diff: z.string().describe('The line diff (+/-/space prefixed), empty if identical.'),
+    },
   },
   async ({ a, b }) => {
     const al = a.split(/\r\n|\r|\n/);
@@ -868,8 +1016,16 @@ const diff = defineTool(
       return errText(`Too many lines (max ${MAX_DIFF_LINES} per side).`);
     }
     const { lines, added, removed } = lineDiff(al, bl);
-    if (!added && !removed) return text('No differences.' + FOOTER);
-    return text(`+${added} -${removed}\n\n` + '```diff\n' + lines.join('\n') + '\n```' + FOOTER);
+    if (!added && !removed) {
+      return out('No differences.' + FOOTER, { changed: false, added: 0, removed: 0, diff: '' });
+    }
+    const body = lines.join('\n');
+    return out(`+${added} -${removed}\n\n` + '```diff\n' + body + '\n```' + FOOTER, {
+      changed: true,
+      added,
+      removed,
+      diff: body,
+    });
   },
 );
 
@@ -895,6 +1051,11 @@ const hmac = defineTool(
         .describe('Hash algorithm.'),
       encoding: z.enum(['hex', 'base64']).default('hex').describe('Output encoding.'),
     },
+    outputSchema: {
+      algorithm: z.string(),
+      encoding: z.string(),
+      signature: z.string().describe('The HMAC in the requested encoding.'),
+    },
   },
   async ({ message, secret, algorithm, encoding }) => {
     const key = await crypto.subtle.importKey(
@@ -907,8 +1068,12 @@ const hmac = defineTool(
     const sig = new Uint8Array(
       await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)),
     );
-    const out = encoding === 'base64' ? toBase64(sig) : toHex(sig);
-    return text(`hmac-${algorithm} (${encoding}): ${out}${FOOTER}`);
+    const signature = encoding === 'base64' ? toBase64(sig) : toHex(sig);
+    return out(`hmac-${algorithm} (${encoding}): ${signature}${FOOTER}`, {
+      algorithm,
+      encoding,
+      signature,
+    });
   },
 );
 
@@ -963,6 +1128,11 @@ const placeholderImage = defineTool(
         .optional()
         .describe('Label text. Defaults to the dimensions, e.g. "600×400".'),
     },
+    outputSchema: {
+      svg: z.string().describe('The SVG markup.'),
+      width: z.number(),
+      height: z.number(),
+    },
   },
   async ({ width, height, bg, color, text: label }) => {
     const bgHex = toHexColor(bg, '#e5e7eb');
@@ -974,7 +1144,11 @@ const placeholderImage = defineTool(
       `<rect width="${width}" height="${height}" fill="${bgHex}"/>` +
       `<text x="50%" y="50%" fill="${fgHex}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="central">${caption}</text>` +
       `</svg>`;
-    return text(`${svg}\n\nMore free tools (no signup): https://cleanor.app/tools?utm_source=mcp`);
+    return out(`${svg}\n\nMore free tools (no signup): https://cleanor.app/tools?utm_source=mcp`, {
+      svg,
+      width,
+      height,
+    });
   },
 );
 
@@ -1018,18 +1192,30 @@ const colorPalette = defineTool(
       color: z.string().min(1).max(64).describe('Base color: "#3b82f6", "rgb(...)" or "hsl(...)".'),
       harmony: z.enum(HARMONIES).default('analogous').describe('Color-harmony rule.'),
     },
+    outputSchema: {
+      harmony: z.string(),
+      base: z.string().describe('The base color as hex.'),
+      colors: z.array(z.object({ hex: z.string(), hsl: z.string() })),
+    },
   },
   async ({ color, harmony }) => {
     const rgb = parseColor(color);
     if (!rgb) return errText('Could not parse color. Use hex, rgb(...) or hsl(...).');
     const base = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    const lines = paletteFor(base.h, base.s, base.l, harmony).map(([h, s, l]) => {
+    const colors = paletteFor(base.h, base.s, base.l, harmony).map(([h, s, l]) => {
       const c = hslToRgb(h, s, l);
-      return `${rgbToHex(c.r, c.g, c.b)}   hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+      return {
+        hex: rgbToHex(c.r, c.g, c.b),
+        hsl: `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`,
+      };
     });
-    return text(
-      `${harmony} palette from ${rgbToHex(rgb.r, rgb.g, rgb.b)}:\n` + lines.join('\n') + FOOTER,
-    );
+    const baseHex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    const lines = colors.map((c) => `${c.hex}   ${c.hsl}`);
+    return out(`${harmony} palette from ${baseHex}:\n` + lines.join('\n') + FOOTER, {
+      harmony,
+      base: baseHex,
+      colors,
+    });
   },
 );
 

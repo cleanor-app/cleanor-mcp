@@ -29,19 +29,29 @@ const storageCapacity = defineTool(
         .describe('Advertised storage size in GB (e.g. 64, 128, 256, 512).'),
       content: z.enum(['photos', 'video']).default('photos').describe('What to count.'),
     },
+    outputSchema: {
+      storage_gb: z.number(),
+      usable_gb: z.number().describe('Usable GB after OS/filesystem overhead.'),
+      content: z.string(),
+      breakdown: z
+        .array(z.object({ label: z.string(), count: z.number(), unit: z.string() }))
+        .describe('How many of each item fit.'),
+    },
   },
   async ({ storage_gb, content }) => {
     const usable = usableGb(storage_gb);
     const lines: string[] = [];
+    const breakdown: Array<{ label: string; count: number; unit: string }> = [];
     if (content === 'photos') {
       for (const it of Object.values(PHOTO_ITEMS)) {
-        lines.push(
-          `  ${it.label}: ${Math.floor((usable * 1000) / it.mb).toLocaleString('en-US')} photos`,
-        );
+        const count = Math.floor((usable * 1000) / it.mb);
+        breakdown.push({ label: it.label, count, unit: 'photos' });
+        lines.push(`  ${it.label}: ${count.toLocaleString('en-US')} photos`);
       }
     } else {
       for (const it of Object.values(VIDEO_ITEMS)) {
         const min = Math.floor((usable * 1000) / it.mbPerMin);
+        breakdown.push({ label: it.label, count: min, unit: 'minutes' });
         lines.push(
           `  ${it.label}: ${min.toLocaleString('en-US')} min (~${Math.floor(min / 60)} h)`,
         );
@@ -58,6 +68,7 @@ const storageCapacity = defineTool(
             ATTRIBUTION.brand,
         },
       ],
+      structuredContent: { storage_gb, usable_gb: usable, content, breakdown },
     };
   },
 );
@@ -79,6 +90,13 @@ const imageFormatSavings = defineTool(
         .default('web')
         .describe('web = typical web quality (SSIM 0.95); high = near-lossless (SSIM 0.98).'),
     },
+    outputSchema: {
+      format: z.string(),
+      quality: z.string(),
+      percent_smaller_than_jpeg: z.number(),
+      all_formats: z.object({ avif: z.number(), webp: z.number(), jxl: z.number() }),
+      source: z.string(),
+    },
   },
   async ({ format, quality }) => {
     const band = FORMAT_SAVINGS[quality];
@@ -96,6 +114,13 @@ const imageFormatSavings = defineTool(
             ATTRIBUTION.brand,
         },
       ],
+      structuredContent: {
+        format,
+        quality,
+        percent_smaller_than_jpeg: Math.abs(pct),
+        all_formats: { avif: band.avif, webp: band.webp, jxl: band.jxl },
+        source: FORMAT_SAVINGS.source,
+      },
     };
   },
 );
@@ -115,6 +140,9 @@ const qrCode = defineTool(
         .describe('Error-correction level: L=7%, M=15%, Q=25%, H=30% recoverable.'),
       size: z.number().int().min(64).max(1024).default(320).describe('SVG pixel size.'),
     },
+    outputSchema: {
+      svg: z.string().describe('The QR code as SVG markup.'),
+    },
   },
   async ({ text, ecc, size }) => {
     const svg = qrToSvg(encodeQr(text, ecc as QrEcc), { size });
@@ -125,6 +153,7 @@ const qrCode = defineTool(
           text: `${svg}\n\nMore generators (no signup): https://cleanor.app/tools?utm_source=mcp`,
         },
       ],
+      structuredContent: { svg },
     };
   },
 );

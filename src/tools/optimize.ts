@@ -87,6 +87,13 @@ export function makeOptimizeImageTool(encode: ImageEncoder): ToolDef {
           .default(80)
           .describe('Encode quality 1-100 (80 is a good default).'),
       },
+      outputSchema: {
+        format: z.string().describe('Output image format.'),
+        original_bytes: z.number(),
+        optimized_bytes: z.number(),
+        saved_pct: z.number().describe('Percent smaller than the original.'),
+        mime_type: z.string(),
+      },
     },
     async ({ image_url, format, width, quality }) => {
       try {
@@ -105,6 +112,13 @@ export function makeOptimizeImageTool(encode: ImageEncoder): ToolDef {
                 ATTRIBUTION.brand,
             },
           ],
+          structuredContent: {
+            format,
+            original_bytes: r.originalBytes,
+            optimized_bytes: r.newBytes,
+            saved_pct: r.savedPct,
+            mime_type: r.mime,
+          },
         };
       } catch (e) {
         return errText(`Optimize failed: ${(e as Error).message}`);

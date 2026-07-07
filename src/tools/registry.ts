@@ -29,9 +29,9 @@ export interface ToolDef {
  * Declare a tool once. Captures the input schema in a closure so an array of
  * tools with differing schemas stays type-safe (no lossy union of generics).
  */
-export function defineTool<Args extends ZodRawShape>(
+export function defineTool<Args extends ZodRawShape, Out extends ZodRawShape = ZodRawShape>(
   name: string,
-  config: ToolMeta & { inputSchema: Args },
+  config: ToolMeta & { inputSchema: Args; outputSchema?: Out },
   handler: ToolCallback<Args>,
 ): ToolDef {
   return {
