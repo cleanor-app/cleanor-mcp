@@ -4,7 +4,7 @@
 # https://mcp.cleanor.app/mcp — for normal use just point your client at that URL:
 #   { "mcpServers": { "cleanor": { "url": "https://mcp.cleanor.app/mcp" } } }
 #
-# This image builds and runs the same four tools locally over stdio (via src/stdio.ts),
+# This image builds and runs the same tools locally over stdio (via src/stdio.ts),
 # so registries/scanners that introspect a self-contained server can start it directly.
 # optimize_image uses the optional `sharp` dependency; the other three tools are identical
 # to production.

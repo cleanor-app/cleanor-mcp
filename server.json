@@ -2,24 +2,57 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "app.cleanor/cleanor",
   "title": "Cleanor",
-  "description": "Zero-auth image optimize/convert + cited storage, image-format & QR data for AI builders.",
+  "description": "Zero-auth MCP: image optimize, cited storage/format data, and dev utilities LLMs get wrong.",
   "websiteUrl": "https://mcp.cleanor.app",
   "repository": {
     "url": "https://github.com/cleanor-app/cleanor-mcp",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.5.0",
   "remotes": [
     {
       "type": "streamable-http",
       "url": "https://mcp.cleanor.app/mcp"
     }
   ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@cleanor/mcp",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "io.cleanor": {
         "endpoint": "https://mcp.cleanor.app/mcp",
-        "tools": ["optimize_image", "storage_capacity", "image_format_savings", "qr_code"],
+        "tools": [
+          "optimize_image",
+          "storage_capacity",
+          "image_format_savings",
+          "qr_code",
+          "hash",
+          "uuid",
+          "base64",
+          "json_format",
+          "jwt_decode",
+          "color",
+          "slugify",
+          "count",
+          "regex_test",
+          "cron_describe",
+          "unit_convert",
+          "datetime",
+          "url_parse",
+          "base_convert",
+          "diff",
+          "hmac",
+          "placeholder_image",
+          "color_palette"
+        ],
         "auth": "none"
       }
     }

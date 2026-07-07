@@ -43,8 +43,7 @@ export const FORMAT_SAVINGS = {
   high: { label: 'high quality (SSIM 0.98)', webp: -6.1, avif: -17.9, jxl: -6.7 },
   corpus: '24-image Kodak lossless suite',
   slug: 'next-gen-image-formats-2026-avif-webp-jpeg-xl-benchmark',
-  source:
-    'https://cleanor.app/blog/next-gen-image-formats-2026-avif-webp-jpeg-xl-benchmark',
+  source: 'https://cleanor.app/blog/next-gen-image-formats-2026-avif-webp-jpeg-xl-benchmark',
 };
 
 // --- HEIC conversion tax (heic-conversion-tax-2026, 96 controlled encodes) ----

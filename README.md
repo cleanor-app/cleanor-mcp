@@ -23,8 +23,26 @@ No API key. No signup. Every response links its source on [cleanor.app](https://
 | `storage_capacity` | How many photos / minutes of video fit in a given GB tier, corrected for real OS/filesystem overhead. Backed by the [photo-storage-capacity study](https://cleanor.app/research). |
 | `image_format_savings` | How much smaller WebP / AVIF / JPEG XL are than JPEG at matched quality, plus the HEIC → JPG/PNG conversion tax. From Cleanor's controlled benchmark. |
 | `qr_code` | Text or URL → a crisp, dependency-free SVG QR code you can paste anywhere. |
+| `hash` | SHA-1/256/384/512 hex digest of text. |
+| `hmac` | Keyed HMAC signature (SHA family), hex or Base64. |
+| `uuid` | UUID v4 (random) or v7 (time-sortable). |
+| `base64` | Base64 encode/decode, UTF-8 + URL-safe. |
+| `json_format` | Validate and pretty-print or minify JSON, optional key sort. |
+| `jwt_decode` | Decode a JWT header + payload (no verification). |
+| `regex_test` | Test a regex and return every match and captured group. |
+| `cron_describe` | Explain a cron expression and list the next runs. |
+| `unit_convert` | Length, mass, data, time, speed, temperature. |
+| `datetime` | Current time or a timestamp in any IANA timezone. |
+| `url_parse` | Break a URL into scheme, host, path, query, fragment. |
+| `base_convert` | Integers between bases 2–36 (BigInt-exact). |
+| `diff` | Line-by-line diff of two texts with a change count. |
+| `color` | Convert a color between hex, RGB and HSL. |
+| `color_palette` | Harmonious palette from one base color. |
+| `placeholder_image` | Sized SVG placeholder with a label and colors. |
+| `slugify` | Clean, URL-safe slug from a title. |
+| `count` | Exact characters, words, lines and UTF-8 bytes. |
 
-All tools are read-only and safe to expose to autonomous agents.
+The first four are image + cited-data tools; the remaining 18 are deterministic developer utilities for the operations LLMs get wrong. All 22 tools are read-only and safe to expose to autonomous agents.
 
 ## Connect
 
