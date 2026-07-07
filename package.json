@@ -4,10 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "stdio": "tsx src/stdio.ts",
-    "typecheck": "tsc --noEmit"
+    "stdio": "tsx src/stdio.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.23.0",
@@ -18,10 +15,5 @@
   },
   "optionalDependencies": {
     "sharp": "^0.34.1"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250705.0",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.102.0"
   }
 }
