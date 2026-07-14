@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "stdio": "tsx src/stdio.ts"
+    "stdio": "tsx src/stdio.ts",
+    "tools:csv": "tsx scripts/build-tools-csv.ts",
+    "tools:csv:check": "tsx scripts/build-tools-csv.ts --check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.23.0",

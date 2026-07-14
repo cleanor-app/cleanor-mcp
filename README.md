@@ -148,7 +148,14 @@ Full input and output schemas: [docs/mcp-tools-reference.md](docs/mcp-tools-refe
 
 ## Tool index (CSV)
 
-[data/tools.csv](data/tools.csv) is the same 22 tools as a flat, machine-readable table: name, title, category (`image`, `data`, `dev`), summary, required and optional parameters, and output fields. Every value is taken from the tool's schema in `src/tools/`. Handy for diffing releases, feeding an MCP directory, or comparing this server against another.
+[data/tools.csv](data/tools.csv) is the same 22 tools as a flat, machine-readable table: name, title, category (`image`, `data`, `dev`), summary, required and optional parameters, and output fields. Handy for diffing releases, feeding an MCP directory, or comparing this server against another.
+
+The file is generated, not hand-written: every value is read out of the tool's Zod schema in `src/tools/`. If you add or change a tool, regenerate it.
+
+```bash
+npm run tools:csv        # rewrite data/tools.csv from src/tools/
+npm run tools:csv:check  # exit 1 if data/tools.csv is out of date
+```
 
 ## Docs
 
