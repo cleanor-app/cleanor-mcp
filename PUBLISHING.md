@@ -23,8 +23,8 @@ mcp-publisher login dns --domain cleanor.app --private-key <PRIVATE_KEY_HEX>
 mcp-publisher publish
 ```
 
-`server.json` describes a **remote** server (`remotes: [{ type: "streamable-http", url: ".../mcp" }]`) —
-no `packages`, no `repository` (repo is private).
+`server.json` describes a **remote** server (`remotes: [{ type: "streamable-http", url: ".../mcp" }]`),
+and now also carries `packages` (the npm package `@cleanor/mcp`) and `repository`, since this repo is public.
 
 ### Regenerate the keypair + TXT record (if the private key is lost)
 

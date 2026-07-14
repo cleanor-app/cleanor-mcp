@@ -14,4 +14,4 @@ identifiers:
     value: 10.5281/zenodo.21225551
     description: "Concept DOI (always resolves to the latest release)"
 license: MIT
-version: 0.1.2
+version: 0.6.0
