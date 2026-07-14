@@ -146,6 +146,10 @@ Every tool is annotated `readOnlyHint: true`. Only `optimize_image` touches the 
 
 Full input and output schemas: [docs/mcp-tools-reference.md](docs/mcp-tools-reference.md).
 
+## Tool index (CSV)
+
+[data/tools.csv](data/tools.csv) is the same 22 tools as a flat, machine-readable table: name, title, category (`image`, `data`, `dev`), summary, required and optional parameters, and output fields. Every value is taken from the tool's schema in `src/tools/`. Handy for diffing releases, feeding an MCP directory, or comparing this server against another.
+
 ## Docs
 
 | Page | What it answers |
